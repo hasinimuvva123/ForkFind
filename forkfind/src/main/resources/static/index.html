@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .query-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .response-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .response-section.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .response-header {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .response-text {
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .examples h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .examples ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .examples li {
+            padding: 8px 0;
+            color: #555;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .examples li:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+
+
+        .success {
+            background: #d4edda !important;
+            border-left: 4px solid #28a745 !important;
+        }
+
+        .success .response-header {
+            color: #28a745 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🍽️ Restaurant Management</h1>
+        <p class="subtitle">Powered by Akka Cluster & LLM</p>
+
+        <div class="query-section">
+            <label for="queryType">Query Type:</label>
+            <select id="queryType">
+                <option value="menu">Menu Inquiry</option>
+                <option value="order">Order Management</option>
+                <option value="reservation">Reservation</option>
+            </select>
+        </div>
+
+        <div class="query-section">
+            <label for="query">Your Question:</label>
+            <textarea id="query" placeholder="Ask me anything about our restaurant..."></textarea>
+        </div>
+
+        <button id="submitBtn" onclick="submitQuery()">Submit Query</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+
+        <div class="response-section" id="responseSection">
+            <div class="response-header">Response:</div>
+            <div class="response-text" id="responseText"></div>
+        </div>
+
+        <div class="examples">
+            <h3>💬 Chat with AI Assistant</h3>
+            <p style="margin-bottom: 15px; color: #555;">Type any question below and press Enter (General knowledge,
+                recipes, jokes, etc.)</p>
+
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chatInput" placeholder="Type your message here..."
+                    style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;"
+                    onkeypress="if(event.key === 'Enter') submitChatQuery()">
+                <button onclick="submitChatQuery()" style="width: auto; padding: 10px 20px;">Send</button>
+            </div>
+        </div>
+
+        <!-- System Logs Section -->
+        <div id="logs-container" class="logs-box">
+            <h3>🖥️ System Logs (Real-time from Akka Actors)</h3>
+            <div id="logs-content">
+                <div class="log-entry">Waiting for logs...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Poll logs every 2 seconds
+        setInterval(fetchLogs, 2000);
+        fetchLogs(); // Initial fetch on load
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (response.ok) {
+                    const logs = await response.json();
+                    const contentDiv = document.getElementById('logs-content');
+                    contentDiv.innerHTML = logs.map(log => `<div class="log-entry">${log}</div>`).join('');
+                    contentDiv.scrollTop = contentDiv.scrollHeight; // Auto-scroll to bottom
+                }
+            } catch (e) {
+                console.error("Failed to fetch logs", e);
+            }
+        }
+
+        function setExample(type, question) {
+            document.getElementById('queryType').value = type;
+            document.getElementById('query').value = question;
+        }
+
+        async function submitQuery() {
+            // Default to 'menu' if user selects 'general' (which we will add) or just use 'menu' for general chat due to MenuActor logic
+            let queryType = document.getElementById('queryType').value;
+            const query = document.getElementById('query').value;
+
+            if (!query.trim()) {
+                alert('Please enter a question');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('responseSection').classList.remove('show', 'success');
+            document.getElementById('responseText').textContent = '';
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        queryType: queryType
+                    })
+                });
+
+                const data = await response.json();
+
+                document.getElementById('responseText').textContent = data.response;
+                document.getElementById('responseSection').classList.add('show', 'success');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('responseText').textContent = 'Error connecting to the server. Please check if the backend is running.';
+                document.getElementById('responseSection').classList.add('show');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+
+        // Allow Enter key to submit (with Shift+Enter for new line)
+        document.getElementById('query').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitQuery();
+            }
+        });
+
+        // Chat with AI Logic
+        async function submitChatQuery() {
+            const chatInput = document.getElementById('chatInput');
+            const query = chatInput.value;
+
+            if (!query.trim()) return;
+
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('responseSection').classList.remove('show', 'success');
+            document.getElementById('responseText').innerHTML = ''; // Clear with innerHTML
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        queryType: 'chat'  // Distinct type for general chat
+                    })
+                });
+
+                const data = await response.json();
+                // Parse markdown content
+                document.getElementById('responseText').innerHTML = marked.parse(data.response);
+                document.getElementById('responseSection').classList.add('show', 'success');
+
+                // Clear input after successful send
+                chatInput.value = '';
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('responseText').textContent = 'Error connecting to server.';
+                document.getElementById('responseSection').classList.add('show');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+    </script>
+</body>
+
+</html>
