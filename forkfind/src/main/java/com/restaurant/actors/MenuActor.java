@@ -19,12 +19,60 @@ public class MenuActor extends AbstractBehavior<RestaurantMessage> {
         return Behaviors.setup(context -> new MenuActor(context, loggingActor, dietarySpecialistActor));
     }
 
+    // Cache for menu items (Name -> Price)
+    private final java.util.Map<String, Double> menuCache = new java.util.HashMap<>();
+    private final java.util.Map<String, String> descCache = new java.util.HashMap<>();
+
     private MenuActor(ActorContext<RestaurantMessage> context,
             ActorRef<RestaurantMessage> loggingActor,
             ActorRef<RestaurantMessage> dietarySpecialistActor) {
         super(context);
         this.loggingActor = loggingActor;
         this.dietarySpecialistActor = dietarySpecialistActor;
+        loadMenuFromFile();
+    }
+
+    // Helper to load file content
+    private void loadMenuFromFile() {
+        try {
+            java.io.InputStream is = getClass().getClassLoader().getResourceAsStream("menu_knowledge.txt");
+            if (is == null) {
+                System.err.println("❌ MenuActor: Could not find menu_knowledge.txt");
+                return;
+            }
+            String content = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String[] lines = content.split("\n");
+
+            String currentItem = "";
+            for (String line : lines) {
+                line = line.trim();
+                // Match lines like "Burger: $16"
+                if (line.contains(": $")) {
+                    String[] parts = line.split(": \\$");
+                    if (parts.length == 2) {
+                        String name = parts[0].trim();
+                        try {
+                            double price = Double.parseDouble(parts[1].split("\\s")[0]); // Handle "$16 (side)"
+                            menuCache.put(name.toLowerCase(), price);
+                            currentItem = name;
+
+                            // Add nicely formatted name to description cache initially
+                            descCache.put(name.toLowerCase(), name);
+                        } catch (Exception e) {
+                        }
+                    }
+                } else if (!currentItem.isEmpty() && !line.isEmpty() && !line.startsWith("===")
+                        && !line.startsWith("Dietary")) {
+                    // Add description detail
+                    String key = currentItem.toLowerCase();
+                    descCache.put(key, descCache.get(key) + ": " + line);
+                    currentItem = ""; // Only take first line of description for simple summary
+                }
+            }
+            System.out.println("✅ MenuActor: Loaded " + menuCache.size() + " items from knowledge base.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -79,28 +127,19 @@ public class MenuActor extends AbstractBehavior<RestaurantMessage> {
     private Behavior<RestaurantMessage> onValidateItemRequest(ValidateItemRequest request) {
         System.out.println("\n   ↳ MenuActor: Validating item '" + request.itemName + "' for OrderActor");
 
-        String item = request.itemName.toLowerCase();
+        String reqItem = request.itemName.toLowerCase();
+        boolean valid = false;
         double price = 0.0;
         String desc = "";
-        boolean valid = false;
 
-        // Simple database logic
-        if (item.contains("burger")) {
-            valid = true;
-            price = 16.0;
-            desc = "Classic ForkFind Burger";
-        } else if (item.contains("pasta")) {
-            valid = true;
-            price = 22.0;
-            desc = "House Pasta";
-        } else if (item.contains("salad")) {
-            valid = true;
-            price = 12.0;
-            desc = "Garden Salad";
-        } else if (item.contains("steak")) {
-            valid = true;
-            price = 28.0;
-            desc = "Steak Frites";
+        // Fuzzy Match from loaded cache
+        for (String key : menuCache.keySet()) {
+            if (key.contains(reqItem) || reqItem.contains(key)) {
+                valid = true;
+                price = menuCache.get(key);
+                desc = descCache.get(key);
+                break;
+            }
         }
 
         loggingActor.tell(new LogMessage("MenuActor --[reply]--> OrderActor", "INFO"));
@@ -110,25 +149,15 @@ public class MenuActor extends AbstractBehavior<RestaurantMessage> {
     }
 
     private String getMenuResponse(String query) {
-        if (query.contains("burger")) {
-            return "🍔 **Classic ForkFind Burger**: \n" +
-                    "A juicy 1/2 lb beef patty topped with aged cheddar, caramelized onions, lettuce, and our secret sauce on a brioche bun. Served with fries. ($16)";
-        } else if (query.contains("pasta") || query.contains("spaghetti") || query.contains("carbonara")) {
-            return "🍝 **House Pasta**: \n" +
-                    "Freshly made linguine with truffle cream sauce, mushrooms, and parmesan crisp. A vegetarian favorite! ($22)";
-        } else if (query.contains("salad")) {
-            return "🥗 **Garden Salad**: \n" +
-                    "Fresh greens, cherry tomatoes, cucumbers, and balsamic vinaigrette. ($12)";
-        } else if (query.contains("drink") || query.contains("wine") || query.contains("beer")) {
-            return "🍷 **Drinks Menu**: \n" +
-                    "We offer a selection of craft beers ($8), house wines ($10/glass), and signature cocktails ($14).";
-        } else {
-            return "📋 **ForkFind User Menu**: \n\n" +
-                    "• **Classic Burger** ($16)\n" +
-                    "• **Truffle Pasta** ($22)\n" +
-                    "• **Garden Salad** ($12)\n" +
-                    "• **Steak Frites** ($28)\n\n" +
-                    "Ask specifically about an item for more details!";
+        // Search in loaded cache
+        for (String key : descCache.keySet()) {
+            if (query.contains(key) || key.contains(query)) {
+                return "🍽️ **" + descCache.get(key) + "** ($" + menuCache.get(key) + ")";
+            }
         }
+
+        return "📋 **Full Menu Available**: \n" +
+                "Please ask specifically about items like Burger, Pasta, Tiramisu, etc. \n" +
+                "(Use 'General Chat' to view the full menu list)";
     }
 }

@@ -74,9 +74,21 @@ public class RoutingActor extends AbstractBehavior<RestaurantMessage> {
         // Route to appropriate actor based on query type
         switch (request.queryType.toLowerCase()) {
             case "menu":
-                System.out.println("\n📍 Routing to MenuActor");
-                loggingActor.tell(new LogMessage("RoutingActor --[sendto]--> MenuActor", "INFO"));
-                menuActor.tell(request);
+                // INTELLIGENT ROUTING FOR MENU
+                // 1. If query implies dietary request -> MenuActor (to demonstrate FORWARD)
+                // 2. Else -> GeneralChatActor (to demonstrate RAG for general knowledge like
+                // price, desc)
+                String q = request.query.toLowerCase();
+                if (q.contains("vegan") || q.contains("vegetarian") || q.contains("gluten") || q.contains("allergy")
+                        || q.contains("dairy")) {
+                    System.out.println("\n📍 Routing to MenuActor (Dietary Request detected -> Will trigger FORWARD)");
+                    loggingActor.tell(new LogMessage("RoutingActor --[sendto]--> MenuActor", "INFO"));
+                    menuActor.tell(request);
+                } else {
+                    System.out.println("\n📍 Routing to GeneralChatActor (General Menu Query -> Will trigger RAG)");
+                    loggingActor.tell(new LogMessage("RoutingActor --[sendto]--> GeneralChatActor", "INFO"));
+                    generalChatActor.tell(request);
+                }
                 break;
             case "order":
                 System.out.println("\n📍 Routing to OrderActor");

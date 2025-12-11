@@ -61,9 +61,26 @@ public class DietarySpecialistActor extends AbstractBehavior<RestaurantMessage> 
         } else if (query.contains("nut") || query.contains("peanut")) {
             return "⚠️ **Nut Allergy Warning**: \n" +
                     "We use peanuts and tree nuts in our desserts and pesto. Please inform your server immediately.";
+        } else if (query.contains("seafood") || query.contains("shellfish")) {
+            return "⚠️ **Shellfish Sensitivity**: \n" +
+                    "Our Calamari and Grilled Salmon are prepared in a kitchen that handles shellfish. \n" +
+                    "Avoid the 'Seafood Platter' and 'Lobster Bisque'.";
+        } else if (query.contains("soy")) {
+            return "**Soy Information**: \n" +
+                    "Soy is present in our Teriyaki Glaze and some salad dressings. \n" +
+                    "Please ask for 'No Soy' preparation on grilled items.";
+        } else if (query.contains("dairy") || query.contains("lactose")) {
+            return "**Dairy Free**: \n" +
+                    "Our burgers can be served without cheese. \n" +
+                    "The Sorbet Trio is strictly dairy-free.";
+        } else if (query.contains("egg")) {
+            return "⚠️ **Egg Allergy**: \n" +
+                    "Our pasta and brioche buns contain eggs. \n" +
+                    "Please request gluten-free buns or salad base instead.";
         } else {
             return "**Dietary Info**: \n" +
-                    "We take allergies seriously. Please allow us 15 minutes extra to prepare special dietary requests carefully.";
+                    "We take allergies seriously. Supported checks: Gluten, Vegan, Nut, Seafood, Soy, Dairy, Egg. \n" +
+                    "Please allow us 15 minutes extra to prepare special dietary requests carefully.";
         }
     }
 }

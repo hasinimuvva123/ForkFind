@@ -171,4 +171,31 @@ public class Messages {
             this.logs = logs;
         }
     }
+
+    // --- RAG MESSAGES ---
+    public static class RetrievalRequest implements RestaurantMessage {
+        public final String keywords;
+        public final ActorRef<RetrievalResponse> replyTo;
+
+        @JsonCreator
+        public RetrievalRequest(
+                @JsonProperty("keywords") String keywords,
+                @JsonProperty("replyTo") ActorRef<RetrievalResponse> replyTo) {
+            this.keywords = keywords;
+            this.replyTo = replyTo;
+        }
+    }
+
+    public static class RetrievalResponse implements RestaurantMessage {
+        public final String context;
+        public final boolean success;
+
+        @JsonCreator
+        public RetrievalResponse(
+                @JsonProperty("context") String context,
+                @JsonProperty("success") boolean success) {
+            this.context = context;
+            this.success = success;
+        }
+    }
 }

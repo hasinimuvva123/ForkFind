@@ -11,7 +11,7 @@ The system features an intelligent chat interface where users can browse menus, 
 This project is a showcase of the **Akka Actor Model**, utilizing three distinct communication patterns to handle different types of business logic.
 
 ### 1. The "Trifecta" of Communication Patterns
-ForkFind explicitly implements the three core Akka messaging patterns:
+ForkFind explicitly implements the three core Akka messaging patterns, plus **Retrieval-Augmented Generation (RAG)**:
 
 *   **🔥 TELL (Fire-and-Forget)**
     *   **Usage**: Logging, Status Updates, Final User Responses.
@@ -32,10 +32,11 @@ ForkFind explicitly implements the three core Akka messaging patterns:
 *   **`RoutingActor`**: The central traffic controller. Inspects the query intent (Menu, Order, Reservation, Chat) and routes it to the appropriate specialized actor.
 *   **`MenuActor`**: Handles menu queries. Uses **FORWARD** to delegate allergy questions.
 *   **`OrderActor`**: process orders. Uses **ASK** to validate items with `MenuActor`.
-*   **`ReservationActor`**: Manages table bookings.
-*   **`GeneralChatActor`**: Handles casual conversation. Uses **ASK** to query the `LLMActor`.
+*   **`ReservationActor`**: Manages table bookings. Supports dynamic parsing (Date/Time/Party) and stateful cancellations.
+*   **`GeneralChatActor`**: Handles casual conversation. Uses **ASK** to query `RetrievalActor` for knowledge, then `LLMActor` for generation (RAG Pattern).
+*   **`RetrievalActor`**: Performs keyword-based search on the knowledge base (`menu_knowledge.txt`).
 *   **`LLMActor`**: Integration point for Large Language Models (LLM).
-*   **`DietarySpecialistActor`**: Specialized expert for allergy and dietary info.
+*   **`DietarySpecialistActor`**: Specialized expert for allergy and dietary info (Soy, Gluten, Nuts, etc.).
 
 ---
 
@@ -94,16 +95,21 @@ Try typing these commands in the web interface to see different actor patterns i
 forkfind/
 ├── src/main/java/com/restaurant/
 │   ├── actors/               # All Akka Actors reside here
-│   │   ├── MenuActor.java    # Uses TELL & FORWARD
-│   │   ├── OrderActor.java   # Uses TELL & ASK
-│   │   ├── RoutingActor.java # Main router
-│   │   └── ...
+│   │   ├── RoutingActor.java # Central router
+│   │   ├── MenuActor.java    # Menu logic & validation
+│   │   ├── OrderActor.java   # Order processing
+│   │   ├── ReservationActor.java # Reservation logic
+│   │   ├── RetrievalActor.java # RAG Knowledge Retrieval
+│   │   ├── GeneralChatActor.java # LLM Orchestrator
+│   │   ├── DietarySpecialistActor.java # Allergy expert
+│   │   └── LLMActor.java     # AI Integration
 │   ├── messages/
 │   │   └── Messages.java     # Immutable message protocols
 │   ├── http/
 │   │   └── RestaurantHttpServer.java # Web server implementation
 │   └── Main.java             # Entry point (boots Node1 & Node2)
 ├── src/main/resources/
+│   ├── menu_knowledge.txt    # RAG Knowledge Base
 │   └── static/               # HTML/CSS Frontend
 └── pom.xml                   # Maven dependencies
 ```

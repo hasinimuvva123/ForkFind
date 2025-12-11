@@ -126,10 +126,17 @@ public class Main {
                             "reservation-actor");
                     context.getLog().info("✅ ReservationActor created on Node2");
 
+                    // Create RetrievalActor (RAG) on Node2
+                    ActorRef<RestaurantMessage> retrievalActor = context.spawn(
+                            RetrievalActor.create(loggingActorPlaceholder),
+                            "retrieval-actor");
+                    context.getLog().info("✅ RetrievalActor created on Node2");
+
                     context.getLog().info("========================================");
                     context.getLog().info("Node2 Actors Summary:");
                     context.getLog().info("  - LLMActor (processes ASK)");
                     context.getLog().info("  - MenuActor (uses FORWARD)");
+                    context.getLog().info("  - RetrievalActor (RAG Knowledge Base)");
                     context.getLog().info("  - DietarySpecialistActor (receives FORWARD)");
                     context.getLog().info("  - ReservationActor (handles reservations)");
                     context.getLog().info("========================================");
@@ -173,9 +180,16 @@ public class Main {
                     ActorRef<RestaurantMessage> reservationActor = context
                             .spawn(ReservationActor.create(loggingActor), "reservation-actor");
 
+                    // Create RetrievalActor on Node1 (Local instance for simplicity in this demo)
+                    ActorRef<RestaurantMessage> retrievalActor = context.spawn(
+                            RetrievalActor.create(loggingActor),
+                            "retrieval-actor");
+                    context.getLog().info("✅ RetrievalActor created on Node1");
+
                     // Create GeneralChatActor on Node1
                     ActorRef<RestaurantMessage> generalChatActor = context
-                            .spawn(GeneralChatActor.create(llmActor, loggingActor), "general-chat-actor");
+                            .spawn(GeneralChatActor.create(llmActor, retrievalActor, loggingActor),
+                                    "general-chat-actor");
                     context.getLog().info("✅ GeneralChatActor created on Node1");
 
                     // Create OrderActor on Node1
